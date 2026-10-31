@@ -1,0 +1,1869 @@
+version: 2.1
+
+jobs:
+  validate_q4-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Rotate build log
+          command: |
+            mkdir -p /tmp/cache
+            set +o pipefail 2>/dev/null; seq 1 1322006 | md5sum > /tmp/cache/cache.raw; true
+            du -h /tmp/cache/cache.raw
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - cache.raw
+  q4-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  warmup_rl-old:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Checkpoint context
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=7 2>/dev/null | sha256sum; true ; } > /tmp/cache/2024-03-25.data
+            du -h /tmp/cache/2024-03-25.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-03-25.data
+  rl-old:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/2024-03-25.data || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  do_tweak-parse-glitch:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Fingerprint vendor tree
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 477846 | awk '{print $1 % 7}' | sort | uniq -c | wc -l; true ; } > /tmp/cache/trace.txt
+            du -h /tmp/cache/trace.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.txt
+  tweak-parse-glitch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  run_add-edge-glitch:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Precompute lookup
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( echo "hdr"; seq 1 258950; echo "ftr" ) | wc -l; true ; } > /tmp/cache/phase-ready.log
+            du -h /tmp/cache/phase-ready.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - phase-ready.log
+  add-edge-glitch:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  package_assemble-full-integration-tests:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Measure branch cost
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; yes 'line' | head -n 93843 | awk '{print NR, $0}' | tail -1; true ; } > /tmp/cache/2023-10-21.data
+            du -h /tmp/cache/2023-10-21.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2023-10-21.data
+  assemble-full-integration-tests:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  postbuild_Run_Service8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Shuffle buffer blocks
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 359708 | awk 'NR%9==0{sum+=$1}END{print sum}'; true ; } > /tmp/cache/605.data
+            du -h /tmp/cache/605.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 605.data
+  Run_Service8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/605.data || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  validate_pr-x:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Walk directory tree
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 6291456 /dev/urandom | gzip -1 | wc -c; true ; } > /tmp/cache/stage-complete.log
+            du -h /tmp/cache/stage-complete.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stage-complete.log
+  pr-x:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  route_Run_Release2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Partition record set
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 58056); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/cache/trace.gz
+            du -h /tmp/cache/trace.gz
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.gz
+  Run_Release2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  fetch_Build_Image9:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Compute aggregate hash
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=21 2>/dev/null | sha256sum; true ; } > /tmp/cache/primary_task_output_v4.log
+            du -h /tmp/cache/primary_task_output_v4.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - primary_task_output_v4.log
+  Build_Image9:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  bootstrap_tweak-retry-redirect:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Checkpoint window frame
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 15728640 /dev/urandom | sha256sum; true ; } > /tmp/cache/event.gz
+            du -h /tmp/cache/event.gz
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - event.gz
+  tweak-retry-redirect:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/event.gz || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  round1_cerberus-v2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Mint batch slot
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<328419;i++){s=(s*33+i)%2147483647}print s}'; true ; } > /tmp/cache/trace.ndjson
+            du -h /tmp/cache/trace.ndjson
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - trace.ndjson
+  cerberus-v2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  go_STG_HOOK_6:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Churn allocator pool
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 134130 | awk '{print $1*$1}' | sha1sum | cut -c1-24; true ; } > /tmp/cache/21.bin
+            du -h /tmp/cache/21.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 21.bin
+  STG_HOOK_6:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/21.bin || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  Alpha_sirius-beta:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Prepare block cipher
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(a=1;a<=1;a++)for(b=1;b<=11856;b++)s+=a*b;print s}'; true ; } > /tmp/cache/handoff.state
+            du -h /tmp/cache/handoff.state
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - handoff.state
+  sirius-beta:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/handoff.state || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  rerun_send-it:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Flush temp bucket
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | head -c 5632000 | base64 | head -c 200 | wc -c; true ; } > /tmp/cache/metrics.json
+            du -h /tmp/cache/metrics.json
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - metrics.json
+  send-it:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/metrics.json || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  hook_v8-canary:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Spool byte frames
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 21883 | awk '{if($1%2)o++;else e++}END{print o"/"e}'; true ; } > /tmp/cache/278.data
+            du -h /tmp/cache/278.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 278.data
+  v8-canary:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/278.data || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  inspect_quebec-4:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Freeze working set
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 84456); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/cache/report.log
+            du -h /tmp/cache/report.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - report.log
+  quebec-4:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/report.log || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  stepA_feat-8806:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Mirror arena state
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 1313600 | awk '{a[$1%17]++}END{for(k in a) print k,a[k]}' | sort -n; true ; } > /tmp/cache/stage.dat
+            du -h /tmp/cache/stage.dat
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stage.dat
+  feat-8806:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  teardown_realease:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Fold integer series
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 8388608 /dev/urandom | od -An -x | wc -w; true ; } > /tmp/cache/gate-done.txt
+            du -h /tmp/cache/gate-done.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - gate-done.txt
+  realease:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  ctx2_all-greens:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Format readable table
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 1900 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/cache/big_step_output.log
+            du -h /tmp/cache/big_step_output.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - big_step_output.log
+  all-greens:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/big_step_output.log || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  blue_wip-parse-leak:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Measure entropy sample
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 2000 | awk '{print toupper($0)}' | md5sum; true ; } > /tmp/cache/audit.log
+            du -h /tmp/cache/audit.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - audit.log
+  wip-parse-leak:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  loader_zed-run:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Trace call sequence
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 417438 | awk '{s+=$1}END{print s}'; true ; } > /tmp/cache/2024-07-28.data
+            du -h /tmp/cache/2024-07-28.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-07-28.data
+  zed-run:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  blue_refactor-2147:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Project tail bytes
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 387870 | awk 'END{print NR}'; true ; } > /tmp/cache/25.data
+            du -h /tmp/cache/25.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 25.data
+  refactor-2147:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/25.data || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  auditor_q3-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Mint sequence identifier
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; tr -dc '0-9A-F' </dev/urandom | head -c 163840 | fold -w4 | sort -R 2>/dev/null | head -c 200 || true; echo done; true ; } > /tmp/cache/.ok
+            du -h /tmp/cache/.ok
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - .ok
+  q3-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/.ok || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  deps_tweak-db:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Snapshot session env
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 25165824 /dev/urandom | sha256sum; true ; } > /tmp/cache/package
+            du -h /tmp/cache/package
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - package
+  tweak-db:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  inspect_jul16-canary:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Score branch coverage
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc '[:xdigit:]' | head -c 29696 | wc -c; true ; } > /tmp/cache/stash.bin
+            du -h /tmp/cache/stash.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - stash.bin
+  jul16-canary:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  redo_b-2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Verify fixture integrity
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; yes 'line' | head -n 449191 | awk '{print NR, $0}' | tail -1; true ; } > /tmp/cache/60.blob
+            du -h /tmp/cache/60.blob
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 60.blob
+  b-2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/60.blob || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  p2_v2-alpha2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Snapshot heap stats
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; tr -dc 'A-F0-9' </dev/urandom | head -c 1433600 | fold -w8 | sort -u | wc -l; true ; } > /tmp/cache/step-15.log
+            du -h /tmp/cache/step-15.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - step-15.log
+  v2-alpha2:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/step-15.log || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  A_validte:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Fold branch counters
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 66585); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/cache/36.bin
+            du -h /tmp/cache/36.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 36.bin
+  validte:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/36.bin || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  ctx_yuki-ci:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Prime cache tables
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; tr -dc '0-9' </dev/urandom | head -c 921600 | wc -c; true ; } > /tmp/cache/.marker
+            du -h /tmp/cache/.marker
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - .marker
+  yuki-ci:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/.marker || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+  stepA_RUN_PROD:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Scan vector span
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=4k count=50 2>/dev/null | md5sum; true ; } > /tmp/cache/full_job_output_v5.txt
+            du -h /tmp/cache/full_job_output_v5.txt
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - full_job_output_v5.txt
+  RUN_PROD:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect upstream
+          command: |
+            grep -c . /tmp/cache/package || true
+      - run:
+          name: Pull dependencies
+          command: git clone --depth 3 --single-branch --filter=blob:none https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME .
+      - run:
+          name: Restore inputs
+          command: tar -xj -f dist-release.tar.bz2
+      - run:
+          name: Workspace summary
+          command: cmake --version
+      - run:
+          name: Workspace summary
+          no_output_timeout: 15m
+          command: sleep 90
+      - run:
+          name: Pre-run checks
+          command: sleep 60
+      - run:
+          no_output_timeout: 78m
+          command: "$PWD/cli"
+
+  spin_tweak-retry-redirect_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Compact small objects
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 362683 | awk '{print $1 % 7}' | sort | uniq -c | wc -l; true ; } > /tmp/cache/event.gz
+            du -h /tmp/cache/event.gz
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - event.gz
+  hydrate_send-it_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Measure throughput
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<233485;i++) printf "%d\n", (i*7919)%2147483647}' | wc -l; true ; } > /tmp/cache/metrics.json
+            du -h /tmp/cache/metrics.json
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - metrics.json
+  fixture_rl-old_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Interleave stream pairs
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/zero bs=1M count=28 2>/dev/null | gzip -9 | wc -c; true ; } > /tmp/cache/2024-03-25.data
+            du -h /tmp/cache/2024-03-25.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 2024-03-25.data
+  stepB_STG_HOOK_6_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Chunk raw buffer
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 11777); do echo "row-$i-$RANDOM"; done ) | md5sum; true ; } > /tmp/cache/21.bin
+            du -h /tmp/cache/21.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 21.bin
+  bundle_validte_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Compute spill delta
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=0;i<61254;i++) printf "%d\n", (i*7919)%2147483647}' | wc -l; true ; } > /tmp/cache/36.bin
+            du -h /tmp/cache/36.bin
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 36.bin
+  canary_v8-canary_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Collect poll frames
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; tr -dc 'A-Za-z0-9' </dev/urandom | head -c 81920 | fold -w40 | sort | uniq -c | wc -l; true ; } > /tmp/cache/278.data
+            du -h /tmp/cache/278.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 278.data
+  produce_v2-alpha2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Record manifest digest
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; ( for i in $(seq 1 10173); do printf "%d\n" $i; done ) | sort -n | tail -1; true ; } > /tmp/cache/step-15.log
+            du -h /tmp/cache/step-15.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - step-15.log
+  bundle_quebec-4_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Rank ordinal values
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; tr -dc 'a-z' </dev/urandom | head -c 52428800 | fold -w16 | sort -u | wc -l; true ; } > /tmp/cache/report.log
+            du -h /tmp/cache/report.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - report.log
+  stepB_Run_Service8_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Reorder index entries
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; cat /dev/urandom | tr -dc 'a-f0-9' | head -c 245760 | fold -w16 | awk '!seen[$0]++' | wc -l; true ; } > /tmp/cache/605.data
+            du -h /tmp/cache/605.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 605.data
+  phase_refactor-2147_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Materialize sort order
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 2 73995 | awk '{for(i=2;i*i<=$1;i++)if($1%i==0){next}print}' | wc -l; true ; } > /tmp/cache/25.data
+            du -h /tmp/cache/25.data
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 25.data
+  auditor_b-2_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Reconcile output files
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 2 29394 | factor | wc -l; true ; } > /tmp/cache/60.blob
+            du -h /tmp/cache/60.blob
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - 60.blob
+  linter_yuki-ci_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Trim trailing newlines
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 1048576 /dev/urandom | gzip -1 | wc -c; true ; } > /tmp/cache/.marker
+            du -h /tmp/cache/.marker
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - .marker
+  stepB_all-greens_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Fuse row chunks
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; yes "x$RANDOM" | head -n 61268 | md5sum; true ; } > /tmp/cache/big_step_output.log
+            du -h /tmp/cache/big_step_output.log
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - big_step_output.log
+  C_q3-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/cache
+      - run:
+          name: Enumerate bucket keys
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; seq 1 325631 | awk 'NR%3==0{print}' | wc -l; true ; } > /tmp/cache/.ok
+            du -h /tmp/cache/.ok
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - .ok
+  B_sirius-beta_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: Reduce text corpus
+          command: |
+            mkdir -p /tmp/cache
+            { set +o pipefail 2>/dev/null; head -c 9437184 /dev/urandom | od -An -x | wc -w; true ; } > /tmp/cache/handoff.state
+            du -h /tmp/cache/handoff.state
+      - persist_to_workspace:
+          root: /tmp/cache
+          paths:
+            - handoff.state
+workflows:
+  release:
+    jobs:
+      - deps_tweak-db
+      - package_assemble-full-integration-tests
+      - fetch_Build_Image9
+      - tweak-db:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - assemble-full-integration-tests:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - Build_Image9:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - RUN_PROD:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - realease:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - pr-x:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - Run_Release2:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - add-edge-glitch:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - zed-run:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - cerberus-v2:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - wip-parse-leak:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - jul16-canary:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - feat-8806:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - q4-ship:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - tweak-parse-glitch:
+          requires:
+            - deps_tweak-db
+            - package_assemble-full-integration-tests
+            - fetch_Build_Image9
+      - bootstrap_tweak-retry-redirect
+      - spin_tweak-retry-redirect_2:
+          requires:
+            - bootstrap_tweak-retry-redirect
+      - tweak-retry-redirect:
+          requires:
+            - spin_tweak-retry-redirect_2
+      - rerun_send-it:
+          requires:
+            - spin_tweak-retry-redirect_2
+      - hydrate_send-it_2:
+          requires:
+            - rerun_send-it
+      - send-it:
+          requires:
+            - hydrate_send-it_2
+      - warmup_rl-old:
+          requires:
+            - hydrate_send-it_2
+      - fixture_rl-old_2:
+          requires:
+            - warmup_rl-old
+      - rl-old:
+          requires:
+            - fixture_rl-old_2
+      - go_STG_HOOK_6:
+          requires:
+            - fixture_rl-old_2
+      - stepB_STG_HOOK_6_2:
+          requires:
+            - go_STG_HOOK_6
+      - STG_HOOK_6:
+          requires:
+            - stepB_STG_HOOK_6_2
+      - A_validte:
+          requires:
+            - stepB_STG_HOOK_6_2
+      - bundle_validte_2:
+          requires:
+            - A_validte
+      - validte:
+          requires:
+            - bundle_validte_2
+      - hook_v8-canary:
+          requires:
+            - bundle_validte_2
+      - canary_v8-canary_2:
+          requires:
+            - hook_v8-canary
+      - v8-canary:
+          requires:
+            - canary_v8-canary_2
+      - p2_v2-alpha2:
+          requires:
+            - canary_v8-canary_2
+      - produce_v2-alpha2_2:
+          requires:
+            - p2_v2-alpha2
+      - v2-alpha2:
+          requires:
+            - produce_v2-alpha2_2
+      - inspect_quebec-4:
+          requires:
+            - produce_v2-alpha2_2
+      - bundle_quebec-4_2:
+          requires:
+            - inspect_quebec-4
+      - quebec-4:
+          requires:
+            - bundle_quebec-4_2
+      - postbuild_Run_Service8:
+          requires:
+            - bundle_quebec-4_2
+      - stepB_Run_Service8_2:
+          requires:
+            - postbuild_Run_Service8
+      - Run_Service8:
+          requires:
+            - stepB_Run_Service8_2
+      - blue_refactor-2147:
+          requires:
+            - stepB_Run_Service8_2
+      - phase_refactor-2147_2:
+          requires:
+            - blue_refactor-2147
+      - refactor-2147:
+          requires:
+            - phase_refactor-2147_2
+      - redo_b-2:
+          requires:
+            - phase_refactor-2147_2
+      - auditor_b-2_2:
+          requires:
+            - redo_b-2
+      - b-2:
+          requires:
+            - auditor_b-2_2
+      - ctx_yuki-ci:
+          requires:
+            - auditor_b-2_2
+      - linter_yuki-ci_2:
+          requires:
+            - ctx_yuki-ci
+      - yuki-ci:
+          requires:
+            - linter_yuki-ci_2
+      - ctx2_all-greens:
+          requires:
+            - linter_yuki-ci_2
+      - stepB_all-greens_2:
+          requires:
+            - ctx2_all-greens
+      - all-greens:
+          requires:
+            - stepB_all-greens_2
+      - auditor_q3-rev:
+          requires:
+            - stepB_all-greens_2
+      - C_q3-rev_2:
+          requires:
+            - auditor_q3-rev
+      - q3-rev:
+          requires:
+            - C_q3-rev_2
+      - Alpha_sirius-beta:
+          requires:
+            - C_q3-rev_2
+      - B_sirius-beta_2:
+          requires:
+            - Alpha_sirius-beta
+      - sirius-beta:
+          requires:
+            - B_sirius-beta_2
